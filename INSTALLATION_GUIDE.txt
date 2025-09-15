@@ -1,0 +1,45 @@
+ThisIsTheWaystone Plugin - Installation Guide
+==============================================
+
+REQUIREMENTS:
+- ExileCore2 installed and working
+- .NET 8.0 SDK (for building)
+- Visual Studio 2022 or compatible IDE
+
+INSTALLATION STEPS:
+1. Extract the ThisIsTheWaystone-Plugin.zip file
+2. Copy the entire "ThisIsTheWaystone" folder to your ExileCore2 Plugins\Source\ directory
+3. Open ThisIsTheWaystone.sln in Visual Studio
+4. Build the solution (Build > Build Solution)
+5. The compiled plugin will appear in your ExileCore2 plugins list
+
+IMPORTANT - DLL REFERENCE ISSUES:
+If you get "ExileCore2 could not be found" errors when building:
+1. Make sure your ExileCore2 installation has these DLLs in the main directory:
+   - ExileCore2.dll
+   - GameOffsets2.dll
+   - ItemFilterLibrary.dll
+2. The project file uses relative paths (..\..\..\) to find these DLLs
+3. If the DLLs are in a different location, update the HintPath in ThisIsTheWaystone.csproj
+4. Alternative: Copy the DLLs to your ExileCore2 main directory if they're missing
+
+USAGE:
+1. Enable the plugin in ExileCore2 settings
+2. Open your inventory in-game
+3. Press D8 to start processing waystones
+4. Press D9 for emergency stop
+
+SETTINGS:
+- All settings are configurable through ExileCore2's settings menu
+- "Waystone Processing" is enabled by default
+- Adjust UI positions and delays as needed
+
+FEATURES:
+- Automatically processes waystones with appropriate currency
+- Applies Augmentation, Alchemy, Regal, and Exalted Orbs
+- Distills waystones with Liquid Paranoia
+- Real-time waystone and currency counting
+- Safety features (stash detection, emergency stop)
+
+For questions or issues, refer to the README.md file included in the plugin folder.
+
