@@ -1,79 +1,145 @@
 # ThisIsTheWaystone Plugin for ExileCore2
 
-A comprehensive waystone processing plugin that automates currency application and paranoia distillation for waystones in Path of Exile.
+🎯 **Automate your waystone processing in Path of Exile!**
 
-## Features
+A comprehensive plugin that automatically processes waystones by applying the correct currency and distilling them with Liquid Paranoia or Diluted Liquid Greed. Perfect for players who want to streamline their waystone crafting workflow.
 
-- **Waystone Processing**: Automatically processes waystones with the appropriate currency
-- **Currency Application**: Applies Augmentation, Alchemy, Regal, and Exalted Orbs as needed
-- **Paranoia Distillation**: Automatically distills waystones with Liquid Paranoia
-- **Real-time Display**: Shows waystone counts and currency availability in a resizable window
-- **Inventory Detection**: Only displays counts when inventory is open
-- **Settings Integration**: Fully integrated with ExileCore2 settings system
-- **Enable/Disable**: Can be toggled on/off from ExileCore2 UI
-- **Keybind Support**: Configurable hotkeys for processing and emergency stop
+## ✨ Key Features
 
-## Installation
+- **🤖 Smart Processing**: Automatically applies Augmentation, Alchemy, Regal, and Exalted Orbs in the correct order
+- **🧪 Dual Distillation**: Support for both Liquid Paranoia and Diluted Liquid Greed
+- **📊 Real-time Display**: Live waystone and currency counts in a resizable window
+- **🛡️ Safety First**: Stash detection, emergency stop, and comprehensive error handling
+- **⚙️ Fully Configurable**: Customizable settings, hotkeys, and UI positions
+- **🔄 Batch Processing**: Handles multiple waystones efficiently in one session
+- **✅ Item Validation**: Ensures correct items are selected at each step
 
-1. Copy the `ThisIsTheWaystone` folder to your ExileCore2 `Plugins\Source\` directory
-2. Build the plugin using Visual Studio or your preferred .NET 8.0 build environment
-3. The compiled plugin will appear in your ExileCore2 plugins list
+## 🚀 Quick Start
 
-## Usage
+### Prerequisites
+- Path of Exile
+- [ExileCore2](https://github.com/ExileCore2/ExileCore2) (download from GitHub)
+- .NET 8.0 SDK (download from Microsoft)
+- Visual Studio 2022 Community (free)
 
-1. Enable the plugin in ExileCore2 settings
-2. Open your inventory in-game
-3. The ThisIsTheWaystone window will appear showing current waystone and currency counts
-4. Use the configured hotkey (default: D8) to start processing waystones
-5. Use the emergency stop key (default: D9) to halt processing if needed
+### Installation
+1. **Download** this plugin
+2. **Extract** the `ThisIsTheWaystone` folder
+3. **Copy** it to your ExileCore2 `Plugins\Source\` directory
+4. **Open** `ThisIsTheWaystone.sln` in Visual Studio
+5. **Build** the solution (Ctrl+Shift+B)
+6. **Launch** ExileCore2 and enable the plugin
 
-## Settings
+### Usage
+1. **Enable** the plugin in ExileCore2 settings
+2. **Open** your inventory in-game
+3. **Press D8** to start processing waystones
+4. **Press D9** for emergency stop
 
+## 🎮 How It Works
+
+### For a 1-Modifier Magic Waystone:
+1. **Apply Augmentation** → adds 1 more modifier
+2. **Apply Regal Orb** → upgrades to rare
+3. **Apply 3 Exalted Orbs** → adds 3 more modifiers (total: 6)
+4. **Distill with Paranoia/Greed** → adds delirium effect
+
+### Batch Processing:
+- Processes all waystones in your inventory
+- Applies currency to all waystones first
+- Then distills all waystones in one session
+- Handles multiple emotion item stacks automatically
+
+## ⚙️ Settings
+
+### Basic Settings
 - **Enable Plugin**: Toggle the plugin on/off
-- **Position X/Y**: Adjust the window position on screen
-- **Waystone Processing**: Enable automatic waystone processing
-- **Process Normal/Magic/Rare Waystones**: Control which rarity waystones to process
-- **Skip Distilled Waystones**: Skip waystones that are already distilled
-- **Use Distilled Paranoia**: Enable paranoia distillation after currency application
+- **Position X/Y**: Adjust window position
+- **Show Debug Info**: Display additional information
+
+### Processing Settings
+- **Process Normal/Magic/Rare Waystones**: Choose which rarities to process
+- **Skip Distilled Waystones**: Skip already processed waystones
 - **Currency Application Delay**: Delay between currency applications (ms)
-- **Waystone Processing Delay**: Delay between waystone processing (ms)
-- **Instill Button X/Y**: Position of the instill button in distillation UI
+
+### Distillation Settings
+- **Use Distilled Paranoia**: Enable Liquid Paranoia distillation
+- **Use Diluted Liquid Greed**: Enable Diluted Liquid Greed distillation
+- **Use No Distilled Emotions**: Disable all distillation
+
+### UI Settings
+- **Instill Button X/Y**: Position of instill button in distillation UI
 - **Distill UI Waystone X/Y**: Position of waystone in distillation UI
-- **Show Waystone Requirements**: Display detailed waystone requirements in UI
-- **Mouse Coordinate Display**: Show current mouse coordinates for UI positioning
-- **Start Processing Key**: Hotkey to start waystone processing
-- **Emergency Stop Key**: Hotkey to emergency stop processing
+- **Show Mouse Coordinates**: Display mouse position for UI setup
 
-## Building
+### Hotkeys
+- **Start Processing Key**: Default D8
+- **Emergency Stop Key**: Default D9
 
-The plugin requires:
-- .NET 8.0 SDK
-- ExileCore2 framework
-- Visual Studio 2022 or compatible IDE
+## 🛡️ Safety Features
 
-Build the project and the compiled DLL will be ready for use with ExileCore2.
+- **Stash Detection**: Won't process when stash is open
+- **Emergency Stop**: Instantly halt all processing
+- **Item Validation**: Ensures correct items are selected
+- **Error Recovery**: Comprehensive error handling and logging
+- **Force Stop**: Complete reset of plugin state
 
-## How It Works
+## 📋 What You Need
 
-1. **Detection**: Scans your inventory for waystones and currency items
-2. **Analysis**: Determines what each waystone needs based on its current state
-3. **Currency Application**: Applies the appropriate currency in the correct order
-4. **Paranoia Distillation**: Uses Liquid Paranoia to distill processed waystones
-5. **Real-time Updates**: Continuously monitors and updates waystone states
+### Required Items
+- **Waystones** in your inventory
+- **Currency items**: Augmentation, Alchemy, Regal, Exalted Orbs
+- **Distillation materials**: Liquid Paranoia OR Diluted Liquid Greed
 
-## Safety Features
+### Important Notes
+- ⚠️ **Close your stash** before using the plugin
+- 📦 Plugin only works when **inventory is open**
+- 🎯 Waystones are processed in **inventory order**
+- 🛑 Use **emergency stop (D9)** if something goes wrong
 
-- **Stash Detection**: Automatically disables processing when stash is open
-- **Emergency Stop**: Hotkey to immediately halt all processing
-- **Error Handling**: Comprehensive error handling and logging
-- **State Validation**: Real-time validation of waystone states before processing
+## 🔧 Troubleshooting
 
-## Future Enhancements
+### Common Issues
+- **"ExileCore2 could not be found"**: Make sure ExileCore2.dll, GameOffsets2.dll, and ItemFilterLibrary.dll are in your ExileCore2 main directory
+- **Build errors**: Ensure you have .NET 8.0 SDK installed
+- **Plugin not working**: Check that your stash is closed and inventory is open
 
-This is a refactored version with improved performance and maintainability. Planned improvements include:
+### Getting Help
+- Check the `INSTALLATION_GUIDE.txt` for detailed setup instructions
+- Report issues on the plugin's GitHub page
+- Make sure you're using the latest version of ExileCore2
+
+## 🎉 Features in Detail
+
+### Smart Currency Application
+- Automatically determines what each waystone needs
+- Applies currency in the correct order
+- Handles different waystone rarities appropriately
+- Real-time validation of waystone states
+
+### Efficient Distillation
+- Opens distillation window once per batch
+- Transfers 1 emotion item per Ctrl+click
+- Processes all waystones in sequence
+- Handles multiple emotion item stacks
+
+### User-Friendly Interface
+- Real-time waystone and currency counting
+- Radio buttons for easy emotion type selection
+- Configurable UI positions
+- Mouse coordinate display for setup
+
+## 🚀 Future Enhancements
+
 - Additional waystone types support
 - Stash waystone processing
 - Custom processing rules
 - Export functionality
 - Sound notifications
 - Advanced filtering options
+
+---
+
+**Happy waystone processing!** 🎯✨
+
+*This plugin is designed to make your Path of Exile waystone crafting experience smoother and more efficient. Always use responsibly and ensure you have the necessary materials before processing.*

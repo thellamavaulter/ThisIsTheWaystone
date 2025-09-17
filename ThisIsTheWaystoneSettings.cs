@@ -37,6 +37,12 @@ namespace ThisIsTheWaystone
         [Menu("Use Distilled Paranoia", "Enable distilled paranoia processing after currency application")]
         public ToggleNode UseDistilledParanoia { get; set; } = new ToggleNode(true);
 
+        [Menu("Use Diluted Liquid Greed", "Enable diluted liquid greed processing after currency application")]
+        public ToggleNode UseDilutedLiquidGreed { get; set; } = new ToggleNode(false);
+
+        [Menu("Use No Distilled Emotions", "Disable all distilled emotion processing")]
+        public ToggleNode UseNoDistilledEmotions { get; set; } = new ToggleNode(false);
+
         [Menu("Currency Application Delay", "Delay between currency applications (ms)")]
         public RangeNode<int> CurrencyDelay { get; set; } = new RangeNode<int>(200, 50, 1000);
 

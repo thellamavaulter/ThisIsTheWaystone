@@ -1,45 +1,98 @@
-ThisIsTheWaystone Plugin - Installation Guide
-==============================================
+ThisIsTheWaystone Plugin - Complete Installation & Usage Guide
+==============================================================
 
-REQUIREMENTS:
-- ExileCore2 installed and working
-- .NET 8.0 SDK (for building)
-- Visual Studio 2022 or compatible IDE
+🎯 WHAT THIS PLUGIN DOES:
+This plugin automatically processes waystones in Path of Exile by:
+- Applying the correct currency (Augmentation, Alchemy, Regal, Exalted Orbs)
+- Distilling waystones with Liquid Paranoia or Diluted Liquid Greed
+- Handling multiple waystones in batches efficiently
+- Providing real-time feedback and safety features
 
-INSTALLATION STEPS:
-1. Extract the ThisIsTheWaystone-Plugin.zip file
-2. Copy the entire "ThisIsTheWaystone" folder to your ExileCore2 Plugins\Source\ directory
-3. Open ThisIsTheWaystone.sln in Visual Studio
-4. Build the solution (Build > Build Solution)
-5. The compiled plugin will appear in your ExileCore2 plugins list
+📋 REQUIREMENTS:
+- Path of Exile installed
+- ExileCore2 installed and working (download from GitHub)
+- .NET 8.0 SDK (download from Microsoft)
+- Visual Studio 2022 Community (free) or compatible IDE
 
-IMPORTANT - DLL REFERENCE ISSUES:
-If you get "ExileCore2 could not be found" errors when building:
-1. Make sure your ExileCore2 installation has these DLLs in the main directory:
+🚀 EASY INSTALLATION (3 Methods):
+
+METHOD 1 - QUICK START (Recommended for beginners):
+1. Download and install ExileCore2 if you haven't already
+2. Download the ThisIsTheWaystone plugin
+3. Extract the "ThisIsTheWaystone" folder
+4. Copy the entire folder to: [Your ExileCore2 Path]\Plugins\Source\
+5. Open ThisIsTheWaystone.sln in Visual Studio
+6. Press Ctrl+Shift+B to build (or Build > Build Solution)
+7. Launch ExileCore2 and enable the plugin
+
+METHOD 2 - MANUAL BUILD:
+1. Follow Method 1 steps 1-4
+2. Open Command Prompt in the ThisIsTheWaystone folder
+3. Run: dotnet build --configuration Release
+4. The compiled DLL will be in bin\Release\net8.0-windows\
+
+METHOD 3 - PRE-BUILT (if available):
+1. Download the pre-compiled ThisIsTheWaystone.dll
+2. Place it in your ExileCore2 Plugins folder
+3. Launch ExileCore2 and enable the plugin
+
+🔧 TROUBLESHOOTING:
+
+DLL REFERENCE ERRORS:
+If you get "ExileCore2 could not be found" errors:
+1. Ensure these files are in your ExileCore2 main directory:
    - ExileCore2.dll
    - GameOffsets2.dll
    - ItemFilterLibrary.dll
-2. The project file uses relative paths (..\..\..\) to find these DLLs
-3. If the DLLs are in a different location, update the HintPath in ThisIsTheWaystone.csproj
-4. Alternative: Copy the DLLs to your ExileCore2 main directory if they're missing
+2. If missing, download them from the ExileCore2 GitHub releases
+3. The plugin looks for these DLLs 3 folders up from the source code
 
-USAGE:
-1. Enable the plugin in ExileCore2 settings
-2. Open your inventory in-game
-3. Press D8 to start processing waystones
-4. Press D9 for emergency stop
+BUILD ERRORS:
+- Make sure you have .NET 8.0 SDK installed
+- Try cleaning and rebuilding the solution
+- Check that all file paths are correct
 
-SETTINGS:
-- All settings are configurable through ExileCore2's settings menu
-- "Waystone Processing" is enabled by default
-- Adjust UI positions and delays as needed
+🎮 HOW TO USE:
 
-FEATURES:
-- Automatically processes waystones with appropriate currency
-- Applies Augmentation, Alchemy, Regal, and Exalted Orbs
-- Distills waystones with Liquid Paranoia
+BASIC USAGE:
+1. Launch Path of Exile and ExileCore2
+2. Enable "ThisIsTheWaystone" in ExileCore2 settings
+3. Open your inventory in-game
+4. Press D8 to start processing waystones
+5. Press D9 for emergency stop
+
+SETTINGS CONFIGURATION:
+- Open ExileCore2 settings and find "ThisIsTheWaystone"
+- Configure distilled emotion type (Paranoia/Greed/None)
+- Adjust UI positions if needed
+- Set processing delays if you experience issues
+
+WHAT YOU NEED:
+- Waystones in your inventory
+- Currency items (Augmentation, Alchemy, Regal, Exalted Orbs)
+- Liquid Paranoia OR Diluted Liquid Greed (if using distillation)
+- Make sure your stash is CLOSED (plugin won't work with stash open)
+
+✨ FEATURES:
+- Smart waystone processing with proper currency application
+- Support for both Liquid Paranoia and Diluted Liquid Greed
 - Real-time waystone and currency counting
 - Safety features (stash detection, emergency stop)
+- Item validation to prevent errors
+- Batch processing for multiple waystones
+- Configurable UI positions and delays
 
-For questions or issues, refer to the README.md file included in the plugin folder.
+⚠️ IMPORTANT NOTES:
+- Always close your stash before using the plugin
+- The plugin only works when your inventory is open
+- Use emergency stop (D9) if something goes wrong
+- Make sure you have enough currency and emotion items
+- The plugin processes waystones in the order they appear in your inventory
+
+🆘 SUPPORT:
+- Check the README.md for detailed information
+- Report issues on the plugin's GitHub page
+- Make sure you're using the latest version of ExileCore2
+
+Happy waystone processing! 🎉
 

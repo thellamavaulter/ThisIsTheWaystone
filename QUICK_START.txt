@@ -1,0 +1,39 @@
+ThisIsTheWaystone Plugin - Quick Start Guide
+============================================
+
+🎯 GET STARTED IN 5 MINUTES!
+
+STEP 1: PREREQUISITES
+- Download and install ExileCore2 from GitHub
+- Download and install .NET 8.0 SDK from Microsoft
+- Have Path of Exile installed
+
+STEP 2: INSTALL PLUGIN
+- Copy the entire "ThisIsTheWaystone" folder to your ExileCore2 Plugins\Source\ directory
+- Double-click "build.bat" to build the plugin
+- OR open "ThisIsTheWaystone.sln" in Visual Studio and build
+
+STEP 3: ENABLE PLUGIN
+- Launch ExileCore2
+- Go to Settings and find "ThisIsTheWaystone"
+- Enable the plugin
+- Adjust settings if needed
+
+STEP 4: USE THE PLUGIN
+- Open Path of Exile
+- Open your inventory
+- Press D8 to start processing waystones
+- Press D9 for emergency stop
+
+WHAT YOU NEED:
+- Waystones in your inventory
+- Currency: Augmentation, Alchemy, Regal, Exalted Orbs
+- Distillation: Liquid Paranoia OR Diluted Liquid Greed
+- Make sure your stash is CLOSED!
+
+TROUBLESHOOTING:
+- If build fails: Make sure ExileCore2.dll files are in ExileCore2 main directory
+- If plugin doesn't work: Check that stash is closed and inventory is open
+- For more help: Read INSTALLATION_GUIDE.txt or README.md
+
+Happy waystone processing! 🎉
