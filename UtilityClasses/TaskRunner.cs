@@ -23,6 +23,7 @@ namespace ThisIsTheWaystone.UtilityClasses
             var cts = new CancellationTokenSource();
             Tasks[name] = cts;
             
+#pragma warning disable CS4014 // Fire-and-forget task is intentional
             Task.Run(async () =>
             {
                 var sTask = task();
@@ -34,6 +35,7 @@ namespace ThisIsTheWaystone.UtilityClasses
 
                 Tasks.TryRemove(new KeyValuePair<string, CancellationTokenSource>(name, cts));
             });
+#pragma warning restore CS4014
         }
 
         /// <summary>

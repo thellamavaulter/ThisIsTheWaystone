@@ -9,11 +9,13 @@
     <PathMap>$(MSBuildProjectDirectory)=$(MSBuildProjectName)</PathMap>
     <EmbedAllSources>true</EmbedAllSources>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
     <!--Don't bother setting anything to do with the output path, HUD will do it for you if you put the source code inside Plugins/Source-->
   </PropertyGroup>
   <ItemGroup>
     <!--These references will be resolved by ExileCore2 when the plugin is loaded-->
-    <!--Make sure your ExileCore2 installation has these DLLs in the main directory-->
+    <!--The plugin will work with any ExileCore2 installation as long as these DLLs are present-->
     <Reference Include="ExileCore2">
       <HintPath>..\..\..\ExileCore2.dll</HintPath>
       <Private>False</Private>

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using ExileCore2;
 using ExileCore2.PoEMemory.Components;
@@ -14,14 +15,61 @@ using ThisIsTheWaystone.UtilityClasses;
 
 namespace ThisIsTheWaystone
 {
+    /// <summary>
+    /// Represents an emotion item (paranoia/greed) with stack tracking
+    /// Based on the DistilItem pattern from map-crafter plugin
+    /// </summary>
+    public class EmotionItem
+    {
+        public NormalInventoryItem InventoryItem { get; }
+        public int StackSize { get; set; }
+        public Vector2 ClickPos { get; }
+        public string EmotionName { get; }
+
+        public EmotionItem(NormalInventoryItem inventoryItem, string emotionName)
+        {
+            InventoryItem = inventoryItem;
+            EmotionName = emotionName;
+            ClickPos = inventoryItem.GetClientRect().Center;
+            
+            // Initialize stack size from the item's current stack
+            try
+            {
+                var stackComponent = inventoryItem.Item.GetComponent<Stack>();
+                StackSize = stackComponent?.Size ?? 0;
+            }
+            catch
+            {
+                StackSize = 0;
+            }
+        }
+
+        /// <summary>
+        /// Decrements the stack size and returns true if successful
+        /// </summary>
+        public bool UseItem()
+        {
+            if (StackSize > 0)
+            {
+                StackSize--;
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Checks if this item has available stack
+        /// </summary>
+        public bool HasAvailableStack => StackSize > 0;
+    }
    
     public class ThisIsTheWaystone : BaseSettingsPlugin<ThisIsTheWaystoneSettings>
     {
         private volatile bool _isProcessing = false;
         private volatile bool _forceStop = false;
         private List<WaystoneData> _waystones = new();
-        private List<NormalInventoryItem> _paranoiaItems = new();
-        private List<NormalInventoryItem> _greedItems = new();
+        private List<EmotionItem> _paranoiaItems = new();
+        private List<EmotionItem> _greedItems = new();
         private Dictionary<string, List<NormalInventoryItem>> _currencyItems = new();
         private Dictionary<string, int> _lastCurrencyStackIndices = new();
         private CancellationTokenSource _processingCancellationToken = new();
@@ -94,12 +142,14 @@ namespace ThisIsTheWaystone
             _paranoiaItems = inventoryItems
                 .Where(x => x.Item.GetComponent<Base>()?.Name == "Liquid Paranoia" && 
                            x.Item.GetComponent<Stack>()?.Size > 0)
+                .Select(x => new EmotionItem(x, "Liquid Paranoia"))
                 .ToList();
 
             // Find greed items
             _greedItems = inventoryItems
                 .Where(x => x.Item.Path.Contains("DistilledEmotion3") && 
                            x.Item.GetComponent<Stack>()?.Size > 0)
+                .Select(x => new EmotionItem(x, "Diluted Liquid Greed"))
                 .ToList();
 
             // Find currency items using dictionary for easy lookup
@@ -152,6 +202,13 @@ namespace ThisIsTheWaystone
             TaskRunner.StopAll();
             CurrencyOperations.CleanUp();
             DebugWindow.LogMsg("ThisIsTheWaystone: Processing force stopped and reset", 5);
+            
+            // Reset the force stop flag after a brief delay to allow for cleanup
+            Task.Run(async () =>
+            {
+                await Task.Delay(1000);
+                _forceStop = false;
+            });
         }
 
         private void EnsureCursorControl()
@@ -171,82 +228,150 @@ namespace ThisIsTheWaystone
             }
         }
 
-        private bool ValidateItemSelection(NormalInventoryItem expectedItem, string operation)
+
+
+
+        private EmotionItem GetValidEmotionItem(List<EmotionItem> emotionItems, string emotionName)
         {
             try
             {
-                // Check if the item still exists and has the expected properties
-                if (expectedItem?.Item == null) return false;
+                // Find the first emotion item with available stack size using map-crafter pattern
+                var validEmotion = emotionItems.FirstOrDefault(x => x.HasAvailableStack);
                 
-                var baseComponent = expectedItem.Item.GetComponent<Base>();
-                var stackComponent = expectedItem.Item.GetComponent<Stack>();
-                
-                if (baseComponent == null) return false;
-                
-                // For currency items, check if stack size is still valid
-                if (stackComponent != null && stackComponent.Size <= 0) return false;
-                
-                return true;
+                if (validEmotion == null)
+                {
+                    DebugWindow.LogError($"No valid {emotionName} items found with available stack size", 5);
+                    return null;
+                }
+
+                // Log which stack we're using for debugging
+                DebugWindow.LogMsg($"Using {emotionName} stack with {validEmotion.StackSize} remaining", 3);
+
+                return validEmotion;
             }
             catch (Exception ex)
             {
-                DebugWindow.LogError($"Error validating item for {operation}: {ex.Message}", 5);
-                return false;
-            }
-        }
-
-        private bool ValidateWorkflowStep(string stepName, bool condition)
-        {
-            if (_forceStop)
-            {
-                DebugWindow.LogMsg($"ThisIsTheWaystone: Workflow stopped at {stepName}", 5);
-                return false;
-            }
-
-            if (!condition)
-            {
-                DebugWindow.LogError($"ThisIsTheWaystone: Workflow validation failed at {stepName}", 5);
-                return false;
-            }
-
-            return true;
-        }
-
-        private NormalInventoryItem GetValidEmotionItem(List<NormalInventoryItem> emotionItems, string emotionName)
-        {
-            // Find the first emotion item with available stack size
-            var validEmotion = emotionItems.FirstOrDefault(p => 
-                p?.Item != null && 
-                p.Item.GetComponent<Stack>()?.Size > 0);
-            
-            if (validEmotion == null)
-            {
-                DebugWindow.LogError($"No valid {emotionName} items found with available stack size", 5);
+                DebugWindow.LogError($"Error getting valid {emotionName} item: {ex.Message}", 5);
                 return null;
             }
+        }
 
-            // Double-check the item is still valid
-            if (!ValidateItemSelection(validEmotion, $"{emotionName} Validation"))
+        /// <summary>
+        /// Refresh the emotion items list to get current stack information
+        /// Based on the ParseDistilItems pattern from map-crafter plugin
+        /// </summary>
+        private void RefreshEmotionItems(List<EmotionItem> emotionItems, string emotionName)
+        {
+            try
             {
-                DebugWindow.LogError($"Selected {emotionName} item failed validation", 5);
+                emotionItems.Clear();
+                var inventoryItems = GameController?.Game?.IngameState?.IngameUi?.InventoryPanel?[InventoryIndex.PlayerInventory]?.VisibleInventoryItems;
+                
+                if (inventoryItems != null)
+                {
+                    foreach (var item in inventoryItems)
+                    {
+                        try
+                        {
+                            var baseComponent = item.Item.GetComponent<Base>();
+                            if (baseComponent != null && baseComponent.Name.Contains(emotionName))
+                            {
+                                var emotionItem = new EmotionItem(item, emotionName);
+                                if (emotionItem.StackSize > 0) // Only add items with available stack
+                                {
+                                    emotionItems.Add(emotionItem);
+                                }
+                            }
+                        }
+                        catch
+                        {
+                            // Skip invalid items
+                        }
+                    }
+                }
+                
+                DebugWindow.LogMsg($"Refreshed {emotionName} items list: {emotionItems.Count} items found with total stack size {emotionItems.Sum(x => x.StackSize)}", 3);
+            }
+            catch (Exception ex)
+            {
+                DebugWindow.LogError($"Error refreshing {emotionName} items: {ex.Message}", 5);
+            }
+        }
+
+
+        /// <summary>
+        /// Get the item currently being hovered over by the cursor
+        /// </summary>
+        private NormalInventoryItem GetItemAtCursor()
+        {
+            try
+            {
+                var cursorPos = Input.MousePosition;
+                var inventoryItems = GameController?.Game?.IngameState?.IngameUi?.InventoryPanel?[InventoryIndex.PlayerInventory]?.VisibleInventoryItems;
+                
+                if (inventoryItems == null) return null;
+                
+                return inventoryItems.FirstOrDefault(item => 
+                {
+                    try
+                    {
+                        var rect = item.GetClientRect();
+                        return rect.Contains(cursorPos);
+                    }
+                    catch
+                    {
+                        return false;
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                DebugWindow.LogError($"Error getting item at cursor: {ex.Message}", 5);
                 return null;
             }
-
-            return validEmotion;
         }
+
+        /// <summary>
+        /// Get the display name of an item for GUI display
+        /// </summary>
+        private string GetItemDisplayName(NormalInventoryItem item)
+        {
+            try
+            {
+                if (item?.Item == null) return "Unknown Item";
+                
+                var baseComponent = item.Item.GetComponent<Base>();
+                if (baseComponent != null)
+                {
+                    return baseComponent.Name ?? "Unknown Item";
+                }
+                
+                return "Unknown Item";
+            }
+            catch (Exception ex)
+            {
+                DebugWindow.LogError($"Error getting item display name: {ex.Message}", 5);
+                return "Error";
+            }
+        }
+
+
+
 
         private void ProcessWaystones()
         {
             try
             {
-                if (!ValidateWorkflowStep("Initial Check", Settings.EnableWaystoneProcessing.Value))
+                if (_forceStop) return;
+                
+                if (!Settings.EnableWaystoneProcessing.Value)
                 {
                     return;
                 }
 
                 // Check if stash is open - don't process if it is
                 var stashPanel = GameController?.Game?.IngameState?.IngameUi?.StashElement;
-                if (!ValidateWorkflowStep("Stash Check", stashPanel?.IsVisible != true))
+                if (stashPanel?.IsVisible == true)
                 {
                     return; // Do nothing if stash is open
                 }
@@ -255,39 +380,29 @@ namespace ThisIsTheWaystone
                 var processableWaystones = _waystones.Where(w => w.CanProcess && 
                     (w.NeedAugment || w.NeedAlchemy || w.NeedRegal || w.NeedExalt || w.NeedParanoia)).ToList();
                 
-                if (!ValidateWorkflowStep("Processable Waystones Check", processableWaystones.Any()))
+                if (!processableWaystones.Any())
                 {
                     return;
                 }
 
                 // Process currency application
-                if (!ValidateWorkflowStep("Currency Application", true))
-                {
-                    return;
-                }
+                if (_forceStop) return;
                 ProcessCurrencyApplication(processableWaystones);
 
                 // Process distilled emotions based on settings
+                if (_forceStop) return;
                 if (Settings.UseDistilledParanoia.Value && !Settings.UseDilutedLiquidGreed.Value && !Settings.UseNoDistilledEmotions.Value)
                 {
-                    if (ValidateWorkflowStep("Paranoia Application", true))
-                    {
-                        ProcessParanoiaApplication(processableWaystones);
-                    }
+                    ProcessParanoiaApplication(processableWaystones);
                 }
                 else if (Settings.UseDilutedLiquidGreed.Value && !Settings.UseDistilledParanoia.Value && !Settings.UseNoDistilledEmotions.Value)
                 {
-                    if (ValidateWorkflowStep("Greed Application", true))
-                    {
-                        ProcessGreedApplication(processableWaystones);
-                    }
+                    ProcessGreedApplication(processableWaystones);
                 }
 
                 // Cleanup
-                if (ValidateWorkflowStep("Cleanup", true))
-                {
-                    PerformCleanup();
-                }
+                if (_forceStop) return;
+                PerformCleanup();
             }
             catch (Exception ex)
             {
@@ -297,9 +412,11 @@ namespace ThisIsTheWaystone
 
         private void ProcessCurrencyApplication(List<WaystoneData> waystones)
         {
+            if (_forceStop) return;
+            
             var waystonesNeedingCurrency = waystones.Where(w => w.NeedAugment || w.NeedAlchemy || w.NeedRegal || w.NeedExalt).ToList();
             
-            if (!ValidateWorkflowStep("Currency Waystones Check", waystonesNeedingCurrency.Any())) return;
+            if (!waystonesNeedingCurrency.Any()) return;
 
             foreach (var waystone in waystonesNeedingCurrency)
             {
@@ -315,35 +432,42 @@ namespace ThisIsTheWaystone
                 if (_forceStop) return;
 
                 // Apply Augmentation
-                if (waystone.NeedAugment && ValidateWorkflowStep("Augmentation", true))
+                if (waystone.NeedAugment)
                 {
+                    if (_forceStop) return;
                     ApplyCurrency("CurrencyAddModToMagic", waystone, 1);
+                    if (_forceStop) return;
                     RecalculateWaystoneState(waystone);
                 }
 
                 if (_forceStop) return;
 
                 // Apply Alchemy
-                if (waystone.NeedAlchemy && ValidateWorkflowStep("Alchemy", true))
+                if (waystone.NeedAlchemy)
                 {
+                    if (_forceStop) return;
                     ApplyCurrency("CurrencyUpgradeToRare", waystone, 1);
+                    if (_forceStop) return;
                     RecalculateWaystoneState(waystone);
                 }
 
                 if (_forceStop) return;
 
                 // Apply Regal
-                if (waystone.NeedRegal && ValidateWorkflowStep("Regal", true))
+                if (waystone.NeedRegal)
                 {
+                    if (_forceStop) return;
                     ApplyCurrency("CurrencyUpgradeMagicToRare", waystone, 1);
+                    if (_forceStop) return;
                     RecalculateWaystoneState(waystone);
                 }
 
                 if (_forceStop) return;
 
                 // Apply Exalted Orbs (with real-time checking)
-                if (waystone.NeedExalt && ValidateWorkflowStep("Exalted Orbs", true))
+                if (waystone.NeedExalt)
                 {
+                    if (_forceStop) return;
                     ApplyExaltedOrbsWithChecking(waystone);
                 }
             }
@@ -355,6 +479,8 @@ namespace ThisIsTheWaystone
 
         private void ApplyExaltedOrbsWithChecking(WaystoneData waystone)
         {
+            if (_forceStop) return;
+            
             int exaltsApplied = 0;
             int maxExalts = waystone.ExaltLeft;
 
@@ -363,6 +489,7 @@ namespace ThisIsTheWaystone
                 if (_forceStop) break;
 
                 // Check if waystone is already fully exalted before each exalt
+                if (_forceStop) return;
                 RecalculateWaystoneState(waystone);
                 
                 if (waystone.ModifierCount >= 6)
@@ -370,13 +497,11 @@ namespace ThisIsTheWaystone
                     break;
                 }
 
-                if (!ValidateWorkflowStep($"Exalt {i + 1}/{maxExalts}", true))
-                {
-                    break;
-                }
-
+                if (_forceStop) break;
                 ApplyCurrency("CurrencyAddModToRare", waystone, 1);
                 exaltsApplied++;
+                
+                if (_forceStop) break;
                 Thread.Sleep(Settings.CurrencyDelay.Value);
             }
         }
@@ -405,105 +530,150 @@ namespace ThisIsTheWaystone
 
         private void ProcessParanoiaApplication(List<WaystoneData> waystones)
         {
+            if (_forceStop) return;
+            
             var waystonesNeedingParanoia = waystones.Where(w => w.NeedParanoia && !w.IsDistilled).ToList();
             
-            if (!ValidateWorkflowStep("Paranoia Waystones Check", waystonesNeedingParanoia.Any())) return;
+            if (!waystonesNeedingParanoia.Any()) return;
 
             // Process all waystones in a single distillation session
+            if (_forceStop) return;
             ProcessAllWaystonesInDistillation(waystonesNeedingParanoia, _paranoiaItems, "Liquid Paranoia");
         }
 
         private void ProcessGreedApplication(List<WaystoneData> waystones)
         {
+            if (_forceStop) return;
+            
             var waystonesNeedingGreed = waystones.Where(w => w.NeedParanoia && !w.IsDistilled).ToList();
             
-            if (!ValidateWorkflowStep("Greed Waystones Check", waystonesNeedingGreed.Any())) return;
+            if (!waystonesNeedingGreed.Any()) return;
 
             // Process all waystones in a single distillation session
+            if (_forceStop) return;
             ProcessAllWaystonesInDistillation(waystonesNeedingGreed, _greedItems, "Diluted Liquid Greed");
         }
 
-        private void ProcessAllWaystonesInDistillation(List<WaystoneData> waystones, List<NormalInventoryItem> emotionItems, string emotionName)
+        private void ProcessAllWaystonesInDistillation(List<WaystoneData> waystones, List<EmotionItem> emotionItems, string emotionName)
         {
             try
             {
                 if (_forceStop) return;
 
-                // Find emotion item with at least 3 charges
-                var emotion = emotionItems.FirstOrDefault(p => p.Item.GetComponent<Stack>()?.Size >= 3);
-                if (!ValidateWorkflowStep($"{emotionName} Availability", emotion != null))
+                // Refresh emotion items and calculate total available
+                RefreshEmotionItems(emotionItems, emotionName);
+                var totalEmotionLeft = emotionItems.Sum(item => item.StackSize);
+                
+                if (totalEmotionLeft < 3)
                 {
+                    DebugWindow.LogError($"Insufficient {emotionName} items available. Need at least 3, have {totalEmotionLeft}", 5);
                     return;
                 }
 
-                // Validate emotion item before using
-                if (!ValidateItemSelection(emotion, $"{emotionName} Selection"))
-                {
-                    DebugWindow.LogError($"Invalid {emotionName} item selected", 5);
-                    return;
-                }
+                DebugWindow.LogMsg($"Starting distillation with {totalEmotionLeft} {emotionName} items available", 3);
 
-                // Open distillation window once at the beginning
-                CurrencyOperations.UseItemRightClick(emotion);
-                Thread.Sleep(350);
-
-                if (_forceStop) return;
-
-                // Process each waystone in the distillation window (window remains open)
+                // Process each waystone in the distillation window
                 foreach (var waystone in waystones)
                 {
                     if (_forceStop) break;
 
-                    // Validate waystone before processing
-                    if (!ValidateItemSelection(waystone.InventoryItem, $"Waystone {waystone.Name}"))
+                    DebugWindow.LogMsg($"Processing waystone: {waystone.Name}", 3);
+
+                    // Check if we have enough emotion items for this waystone (need 3)
+                    if (totalEmotionLeft < 3)
                     {
-                        DebugWindow.LogError($"Invalid waystone {waystone.Name} selected", 5);
+                        DebugWindow.LogError($"Insufficient {emotionName} items for waystone {waystone.Name}. Need 3, have {totalEmotionLeft}", 5);
+                        break;
+                    }
+
+                    // Step 1: Right-click the liquid (greed or paranoia) to open distillation window
+                    if (_forceStop) break;
+                    var currentLiquid = GetValidEmotionItem(emotionItems, emotionName);
+                    if (currentLiquid == null)
+                    {
+                        DebugWindow.LogError($"No valid {emotionName} item available to start distillation", 5);
                         continue;
                     }
 
-                    // Step 3: Control + click the waystone for distillation
-                    CurrencyOperations.CtrlClickItem(waystone.InventoryItem);
+                    // Right-click the liquid to open distillation window
+                    Input.SetCursorPos(currentLiquid.ClickPos);
+                    if (_forceStop) break;
+                    Thread.Sleep(100);
+                    Input.Click(MouseButtons.Right);
+                    if (_forceStop) break;
+                    Thread.Sleep(500); // Wait for distillation window to open
+
+                    // Step 2: Control + click the waystone into the distillation window
+                    if (_forceStop) break;
+                    if (!CurrencyOperations.CtrlClickItem(waystone.InventoryItem, "waystone", $"Waystone {waystone.Name} Transfer"))
+                    {
+                        DebugWindow.LogError($"Failed to transfer waystone {waystone.Name} to distillation window", 5);
+                        continue;
+                    }
+                    if (_forceStop) break;
                     Thread.Sleep(200);
 
-                    if (_forceStop) break;
-
-                    // Step 4: Control + click the distillation materials 3 times (for each waystone)
+                    // Step 3: Control + click the liquid stack 3 times with dynamic stack management
                     for (int i = 0; i < 3; i++)
                     {
                         if (_forceStop) break;
                         
-                        // Find a valid emotion item for this transfer (re-validate each time)
-                        var currentEmotion = GetValidEmotionItem(emotionItems, emotionName);
+                        // Find a valid emotion item for this transfer using map-crafter pattern
+                        var currentEmotion = emotionItems.FirstOrDefault(x => x.HasAvailableStack);
                         if (currentEmotion == null)
                         {
                             DebugWindow.LogError($"No valid {emotionName} item available for transfer {i + 1}", 5);
                             break;
                         }
 
-                        // Ensure we're clicking on the correct emotion item
-                        CurrencyOperations.CtrlClickItem(currentEmotion);
+                        // Use the emotion item and decrement its stack
+                        if (!currentEmotion.UseItem())
+                        {
+                            DebugWindow.LogError($"Failed to use {emotionName} item for transfer {i + 1}", 5);
+                            break;
+                        }
+                        
+                        totalEmotionLeft--; // Decrement global counter
+
+                        // Control + click the liquid into distillation window
+                        if (_forceStop) break;
+                        if (!CurrencyOperations.CtrlClickItem(currentEmotion.InventoryItem, "emotion", $"Liquid Transfer {i + 1}"))
+                        {
+                            DebugWindow.LogError($"Failed to transfer liquid {i + 1} to distillation window", 5);
+                            break;
+                        }
+                        if (_forceStop) break;
                         Thread.Sleep(200);
                     }
 
                     if (_forceStop) break;
 
-                    // Step 5: Click instill button (using configurable position)
+                    // Step 4: Click instill button
+                    if (_forceStop) break;
                     var instillPos = GameController.Window.GetWindowRectangle().TopLeft + new Vector2(Settings.InstillButtonX.Value, Settings.InstillButtonY.Value);
                     CurrencyOperations.ClickAtPosition(instillPos);
+                    if (_forceStop) break;
                     Thread.Sleep(750);
 
                     if (_forceStop) break;
 
-                    // Step 6: Control + left click the waystone back into inventory
+                    // Step 5: Control + click the waystone back into inventory
+                    if (_forceStop) break;
                     var waystoneInDistillationPos = GameController.Window.GetWindowRectangle().TopLeft + new Vector2(Settings.DistillWaystoneX.Value, Settings.DistillWaystoneY.Value);
                     Input.SetCursorPos(waystoneInDistillationPos);
+                    if (_forceStop) break;
                     Thread.Sleep(100);
                     Input.KeyDown(Keys.ControlKey);
+                    if (_forceStop) break;
                     Thread.Sleep(50);
                     Input.Click(MouseButtons.Left);
+                    if (_forceStop) break;
                     Thread.Sleep(60);
                     Input.KeyUp(Keys.ControlKey);
+                    if (_forceStop) break;
                     Thread.Sleep(350);
+
+                    DebugWindow.LogMsg($"Completed processing waystone: {waystone.Name}. {totalEmotionLeft} {emotionName} items remaining", 3);
                 }
 
                 // No need to press Escape - the distillation window will close automatically
@@ -517,36 +687,18 @@ namespace ThisIsTheWaystone
 
         private void ApplyCurrency(string currencyPath, WaystoneData waystone, int count = 1)
         {
+            if (_forceStop) return;
+            
             var currency = GetCurrencyItem(currencyPath);
-            if (!ValidateWorkflowStep($"Currency {currencyPath} Availability", currency != null))
-            {
-                return;
-            }
-
-            // Validate currency item before using
-            if (!ValidateItemSelection(currency, $"Currency {currencyPath}"))
-            {
-                DebugWindow.LogError($"Invalid currency {currencyPath} selected", 5);
-                return;
-            }
-
-            // Validate waystone before using
-            if (!ValidateItemSelection(waystone.InventoryItem, $"Waystone {waystone.Name}"))
-            {
-                DebugWindow.LogError($"Invalid waystone {waystone.Name} selected", 5);
-                return;
-            }
+            if (currency == null) return;
 
             for (int i = 0; i < count; i++)
             {
                 if (_forceStop) break;
 
-                if (!ValidateWorkflowStep($"Currency Application {i + 1}/{count}", true))
-                {
-                    break;
-                }
-
-                CurrencyOperations.UseCurrencyOnItem(currency, waystone.InventoryItem);
+                CurrencyOperations.UseCurrencyOnItem(currency, waystone.InventoryItem, currencyPath);
+                
+                if (_forceStop) break;
                 Thread.Sleep(Settings.CurrencyDelay.Value);
             }
         }
@@ -576,8 +728,11 @@ namespace ThisIsTheWaystone
         {
             try
             {
+                if (_forceStop) return;
+                
                 // Press Escape to close any open windows
                 CurrencyOperations.PressKey(Keys.Escape);
+                if (_forceStop) return;
                 Thread.Sleep(200);
             }
             catch (Exception ex)
@@ -614,8 +769,8 @@ namespace ThisIsTheWaystone
                 }
 
                 ImGui.Text($"Waystones Found: {_waystones.Count}");
-                ImGui.Text($"Paranoia Items: {_paranoiaItems.Count}");
-                ImGui.Text($"Greed Items: {_greedItems.Count}");
+                ImGui.Text($"Paranoia Items: {_paranoiaItems.Count} (Total: {_paranoiaItems.Sum(x => x.StackSize)})");
+                ImGui.Text($"Greed Items: {_greedItems.Count} (Total: {_greedItems.Sum(x => x.StackSize)})");
                 
                 // Show currency counts with proper names
                 ImGui.Separator();
@@ -681,6 +836,42 @@ namespace ThisIsTheWaystone
                     
                     var mousePos = Input.MousePosition;
                     ImGui.Text($"X: {mousePos.X:F0}, Y: {mousePos.Y:F0}");
+                }
+
+                // Show hovered item information
+                ImGui.Separator();
+                ImGui.TextColored(new Vector4(0.8f, 0.8f, 1f, 1), "Hovered Item:");
+                
+                var hoveredItem = GetItemAtCursor();
+                if (hoveredItem != null)
+                {
+                    var itemName = GetItemDisplayName(hoveredItem);
+                    ImGui.TextColored(new Vector4(1f, 1f, 0f, 1), itemName);
+                    
+                    // Show additional item info if available
+                    try
+                    {
+                        var stackComponent = hoveredItem.Item.GetComponent<Stack>();
+                        if (stackComponent != null && stackComponent.Size > 1)
+                        {
+                            ImGui.Text($"Stack Size: {stackComponent.Size}");
+                        }
+                        
+                        var modsComponent = hoveredItem.Item.GetComponent<Mods>();
+                        if (modsComponent != null)
+                        {
+                            ImGui.Text($"Rarity: {modsComponent.ItemRarity}");
+                            ImGui.Text($"Modifiers: {modsComponent.ItemMods?.Count ?? 0}");
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore errors getting additional info
+                    }
+                }
+                else
+                {
+                    ImGui.TextColored(new Vector4(0.5f, 0.5f, 0.5f, 1), "No item under cursor");
                 }
                 
                 ImGui.End();
