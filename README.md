@@ -30,6 +30,10 @@ A comprehensive plugin that automatically processes waystones by applying the co
 5. **Build** the solution (Ctrl+Shift+B)
 6. **Launch** ExileCore2 and enable the plugin
 
+****OR****
+
+Run the.bat file in the directory. (if it included one)
+
 ### Usage
 1. **Enable** the plugin in ExileCore2 settings
 2. **Open** your inventory in-game
